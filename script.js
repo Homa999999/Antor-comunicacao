@@ -139,7 +139,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return {
                 titulo: "Limite de arquivos",
                 texto: `Você selecionou ${arquivos.length} arquivos, mas o máximo permitido é ${MAX_ARQUIVOS}.`,
-                sugestao: "Remova alguns anexos clicando no X ao lado de cada arquivo, ou selecione menos arquivos de uma vez."
             };
         }
 
@@ -149,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return {
                 titulo: "Anexos excedem o limite",
                 texto: `Os arquivos somam ${totalMb} MB, mas o limite total é ${LIMITE_TOTAL_MB} MB.`,
-                sugestao: "Remova um ou mais anexos (clique no X), envie fotos com resolução menor ou compacte documentos em PDF antes de anexar."
+                
             };
         }
 
@@ -160,7 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
         Swal.fire({
             icon: "warning",
             title: erro.titulo || "Anexo inválido",
-            html: `<p>${erro.texto}</p><p><strong>Sugestão:</strong> ${erro.sugestao}</p>`,
+            html: `<p>${erro.texto}</p>`,
             confirmButtonText: "Entendi",
             confirmButtonColor: COR_PRIMARIA
         });
