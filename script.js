@@ -350,7 +350,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 title: "Comunicado enviado!",
 
-                html: `Seu comunicado foi registrado com sucesso.<br><br>`,
+                html: "Seu comunicado foi registrado com sucesso.",
 
                 confirmButtonText: "OK",
 

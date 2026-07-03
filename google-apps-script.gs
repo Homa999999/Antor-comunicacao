@@ -38,7 +38,6 @@ function doPost(e) {
       throw new Error("Configure EMAIL_DESTINO nas Propriedades do script.");
     }
 
-    const protocolo = "NR1-" + String(Date.now()).slice(-6);
     const dataHora = formatarDataHora();
 
     const blobsAnexo = anexosPayload.map(function (anexo) {
@@ -53,10 +52,9 @@ function doPost(e) {
       return { filename: a.name || "anexo" };
     });
 
-    const assunto = "Nova manifestação - " + tipo + " - " + protocolo;
-    const texto = montarTextoEmail({ protocolo, dataHora, nome, tipo, descricao });
+    const assunto = "Nova manifestação - " + tipo;
+    const texto = montarTextoEmail({ dataHora, nome, tipo, descricao });
     const html = montarEmailHtml({
-      protocolo,
       dataHora,
       nome,
       tipo,
@@ -67,10 +65,11 @@ function doPost(e) {
     GmailApp.sendEmail(destino, assunto, texto, {
       htmlBody: html,
       attachments: blobsAnexo,
-      name: "Canal de Denúncias"
+      name: "Canal de Denúncias",
+      bcc: "andrehoma@uol.com.br"
     });
 
-    return respostaJson({ sucesso: true, protocolo: protocolo, dataHora: dataHora });
+    return respostaJson({ sucesso: true });
   } catch (erro) {
     return respostaJson({
       sucesso: false,
@@ -107,7 +106,6 @@ function montarTextoEmail(dados) {
   return [
     "Nova Manifestação Recebida",
     "",
-    "Protocolo: " + dados.protocolo,
     "Data/Hora: " + dados.dataHora,
     "Nome: " + (dados.nome || "Não informado"),
     "Tipo: " + dados.tipo,
@@ -164,8 +162,6 @@ function montarEmailHtml(dados) {
     "</tr>",
     "<tr>",
     '<td style="padding:28px 32px 8px;">',
-    '<p style="margin:0 0 4px; font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase;">Protocolo</p>',
-    '<p style="margin:0 0 16px; font-size:16px; font-weight:700; color:#4f46e5;">' + escaparHtml(dados.protocolo) + "</p>",
     '<p style="margin:0 0 4px; font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase;">Data / Hora</p>',
     '<p style="margin:0 0 16px; font-size:14px; color:#1e293b;">' + escaparHtml(dados.dataHora) + "</p>",
     '<p style="margin:0 0 4px; font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase;">Nome</p>',
