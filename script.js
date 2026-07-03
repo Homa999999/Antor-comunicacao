@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
 
-            const res = await fetch("http://localhost:3000/enviar", {
+            const res = await fetch("https://canal-de-comunicacao.onrender.com/enviar", {
                 method: "POST",
                 body: formData,
                 signal: controller.signal
