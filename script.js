@@ -1,5 +1,17 @@
-document.addEventListener("DOMContentLoaded", () => {
+/**
+ * Revisão completa do JS Frontend:
+ * 
+ * - O fetch precisa fazer: 
+ *    * mode: 'cors'
+ *    * Não precisa de headers Content-Type com FormData
+ *    * Deve verificar e tratar erro parse JSON (responde HTML/quebrado?).
+ * - Não interpretar response como JSON se não for!
+ * - Exibir erro amigável se o backend não retornar JSON válido.
+ * 
+ * Corretamente o backend NUNCA deve responder HTML; se responder, exiba alerta.
+ */
 
+document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("form");
     const btnEnviar = document.getElementById("btn-enviar");
     const loadingOverlay = document.getElementById("loading-overlay");
@@ -74,7 +86,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     form.addEventListener("submit", async (e) => {
-
         e.preventDefault();
 
         const erroAnexo = validarAnexos();
@@ -99,16 +110,33 @@ document.addEventListener("DOMContentLoaded", () => {
         mostrarLoading();
 
         try {
-
             const res = await fetch("https://canal-de-comunicacao.onrender.com/enviar", {
                 method: "POST",
-                body: formData
+                body: formData,
+                mode: "cors", // Garantir CORS no frontend
+                // NÃO adicionar headers Content-Type - o browser fará isso com boundary
+                // credentials: "omit" // default, só precisa se back pedir cookie/autent.
             });
 
-            const data = await res.json();
+            // Checar primeiro se response é OK e Content-Type = JSON
+            const contentType = res.headers.get("content-type") || "";
+            let data = null, rawText = null;
+
+            if (!contentType.includes("application/json")) {
+                // O backend retornou HTML ou texto, geralmente erro de infra!
+                rawText = await res.text();
+                throw new Error(
+                    "O servidor respondeu algo inesperado (Content-Type não é JSON). " +
+                    "Isto indica provável erro de configuração, rota incorreta, backend caído ou build incompleto. " +
+                    "Conteúdo recebido (os primeiros 200 caracteres):\n\n" +
+                    rawText.slice(0, 200)
+                );
+            } else {
+                data = await res.json();
+            }
 
             if (!res.ok || !data.sucesso) {
-                throw new Error(data.erro || "Falha no envio");
+                throw new Error(data.erro || "Falha ao enviar o comunicado.");
             }
 
             ocultarLoading();
@@ -125,18 +153,24 @@ document.addEventListener("DOMContentLoaded", () => {
             atualizarListaArquivos();
 
         } catch (err) {
-            console.error(err);
             ocultarLoading();
+
+            // Erro JSON parse/infra apresenta explicação extra:
+            let explicacao = "";
+            if (err.message && err.message.includes("<!DOCTYPE")) {
+                explicacao =
+                    "\n\n→ O backend possivelmente respondeu uma página HTML ou está fora do ar, retornando o conteúdo padrão. " +
+                    "Verifique se o endereço da API está correto, se o back está rodando e se está respondendo res.json().";
+            }
 
             Swal.fire({
                 icon: "error",
                 title: "Erro ao enviar",
-                text: err.message || "Não foi possível enviar o comunicado. Tente novamente.",
+                text: (err.message || "Não foi possível enviar o comunicado. Tente novamente.") + explicacao,
                 confirmButtonText: "OK",
                 confirmButtonColor: COR_PRIMARIA
             });
         }
-
     });
 
     const radios = document.querySelectorAll('input[name="resposta"]');
@@ -158,7 +192,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     tiposContato.forEach(radio => {
         radio.addEventListener("change", () => {
-
             if (radio.value === "telefone" && radio.checked) {
                 campoTelefone.classList.remove("hidden");
                 campoEmail.classList.add("hidden");
@@ -168,8 +201,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 campoEmail.classList.remove("hidden");
                 campoTelefone.classList.add("hidden");
             }
-
         });
     });
-
 });
