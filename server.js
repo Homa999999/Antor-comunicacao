@@ -8,6 +8,10 @@ const app = express();
 
 const LIMITE_MB = 10;
 
+// Garantir parsing da rota .body (se vier form, já no multer, mas para JSON/adds)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // 1. Express: Revisão, Middlewares
 
 // CORS seguro para permitir apenas frontend de produção e desenvolvimento
@@ -191,24 +195,34 @@ function montarEmailHtml({ protocolo, dataHora, nome, tipo, descricao, anexos })
 }
 
 // 5. Rota POST /enviar revisada
+// IMPORTANTE: Corrigir req ficar pending para sempre (problema comum ao misturar callback e async).
+// Uso do padrão Promise para Multer para garantir resposta mesmo em erro.
 app.post("/enviar", (req, res) => {
+  // Promisificar o Multer
   upload.array("anexos", 10)(req, res, async (err) => {
-    // Tratamento de erro do Multer
+    let responseSent = false;
+    function safeJson(status, body) {
+      if (!responseSent) {
+        responseSent = true;
+        res.status(status).json(body);
+      }
+    }
+    // Tratamento do erro do Multer
     if (err) {
       if (err.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({
+        return safeJson(400, {
           sucesso: false,
           erro: `Cada arquivo deve ter no máximo ${LIMITE_MB}MB.`
         });
       }
       if (err.code === "LIMIT_FILE_COUNT") {
-        return res.status(400).json({
+        return safeJson(400, {
           sucesso: false,
           erro: "É permitido enviar no máximo 10 arquivos."
         });
       }
       // Para outros erros do multer
-      return res.status(400).json({
+      return safeJson(400, {
         sucesso: false,
         erro: err.message || "Erro ao processar os anexos."
       });
@@ -231,21 +245,17 @@ app.post("/enviar", (req, res) => {
         content: file.buffer
       }));
 
-      // DEBUG: Pode remover estes logs em produção
-      //console.log("Recebi a requisição");
-      //console.log(req.body);
-      //console.log(req.files);
-
       // Validação mínima
       if (!tipo || !descricao) {
-        return res.status(400).json({
+        return safeJson(400, {
           sucesso: false,
           erro: "Tipo e descrição são obrigatórios."
         });
       }
 
       // O await do sendMail pode travar se as credenciais estiverem erradas ou se porta/bloqueio SMTP. Timeout padrão ~10s.
-      await transporter.sendMail({
+      // Setar timeout de 20s para a promise do sendMail, para nunca pendurar indefinidamente
+      const sendMailPromise = transporter.sendMail({
         from: `"Canal de Denúncias" <${process.env.EMAIL}>`,
         to: process.env.EMAIL_DESTINO,
         subject: `Nova manifestação - ${tipo} - ${protocolo}`,
@@ -271,7 +281,17 @@ app.post("/enviar", (req, res) => {
         attachments: anexos
       });
 
-      return res.json({
+      // timeout em 20s
+      const TIMEOUT_MS = 20000;
+
+      await Promise.race([
+        sendMailPromise,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout ao enviar e-mail (SMTP fora do ar?).")), TIMEOUT_MS)
+        )
+      ]);
+
+      return safeJson(200, {
         sucesso: true,
         protocolo,
         dataHora
@@ -281,7 +301,7 @@ app.post("/enviar", (req, res) => {
       // Inclua mensagem de erro técnica SOMENTE para debug.
       // Em produção, preferencialmente enviar apenas uma msg genérica.
       console.error(erro);
-      return res.status(500).json({
+      return safeJson(500, {
         sucesso: false,
         erro: erro && erro.message
           ? String(erro.message)

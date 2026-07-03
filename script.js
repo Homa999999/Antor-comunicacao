@@ -119,13 +119,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
         mostrarLoading();
 
+        // Adicionado timeout com AbortController para evitar fetch pendente para sempre
+        const controller = new AbortController();
+        const timeoutMs = 20000; // 20 segundos
+        const timeout = setTimeout(() => {
+            controller.abort();
+        }, timeoutMs);
+
         try {
             const res = await fetch("https://canal-de-comunicacao.onrender.com/enviar", {
                 method: "POST",
                 body: formData,
-                mode: "cors", // Garantir CORS no frontend
+                signal: controller.signal
                 // NÃO adicionar headers Content-Type - o browser fará isso com boundary
             });
+
+            clearTimeout(timeout);
 
             // Checar primeiro se response é OK e Content-Type = JSON
             const contentType = res.headers.get("content-type") || "";
@@ -162,10 +171,14 @@ document.addEventListener("DOMContentLoaded", () => {
             atualizarListaArquivos();
 
         } catch (err) {
+            clearTimeout(timeout);
             ocultarLoading();
 
             let explicacao = "";
-            if (err.message && err.message.includes("<!DOCTYPE")) {
+            if (err.name === 'AbortError') {
+                explicacao = `\n\n→ O envio demorou demais e foi interrompido por timeout (${timeoutMs/1000}s). 
+Verifique sua conexão, tente novamente, ou entre em contato com o suporte se o problema persistir.`;
+            } else if (err.message && err.message.includes("<!DOCTYPE")) {
                 explicacao =
                     "\n\n→ O backend possivelmente respondeu uma página HTML ou está fora do ar, retornando o conteúdo padrão. " +
                     "Verifique se o endereço da API está correto, se o back está rodando e se está respondendo res.json().";
