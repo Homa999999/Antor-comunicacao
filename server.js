@@ -21,16 +21,12 @@ const LIMITE_MB = 10;
 // CORS seguro para permitir apenas frontend de produção e desenvolvimento
 app.use(cors({
   origin: [
-    "https://seu-frontend.github.io",               // troque para sua URL do GitHub Pages ao deplyar
+    "https://homa999999.github.io/canal-de-comunicacao",               // troque para sua URL do GitHub Pages ao deplyar
     "http://localhost:3000",
     "http://localhost:5173"
   ]
 }));
 
-// --- Healthcheck ---
-app.get("/", (req, res) => {
-  res.json({ ok: true, message: "API rodando" });
-});
 
 // 2. Multer: Limitador de anexos
 const upload = multer({
