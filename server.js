@@ -85,7 +85,7 @@ function montarEmailHtml({ protocolo, dataHora, nome, tipo, descricao, anexos })
                         <tr>
                             <td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%); padding:32px;">
                                 <p style="margin:0 0 6px; font-size:12px; font-weight:600; color:rgba(255,255,255,0.75); text-transform:uppercase; letter-spacing:0.1em;">Canal NR1</p>
-                                <h1 style="margin:0; font-size:24px; font-weight:700; color:#ffffff; letter-spacing:-0.02em;">Nova Manifestação Recebida</h1>
+                                <h1 style="margin:0; font-size:24px; font-weight:700; color:#ffffff; letter-spacing:-0.02em;">Nova comunicado recebido</h1>
                             </td>
                         </tr>
                         <tr>
